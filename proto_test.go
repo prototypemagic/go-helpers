@@ -4,7 +4,7 @@
 package main
 
 import (
-    "fmt"
+	"fmt"
 	proto "./proto"
 	"testing"
 )
@@ -13,24 +13,19 @@ import (
 func TestRange(t *testing.T) {
 	const errStr = "Wanted %v, got %v\n"
 
-	if returned, correct := proto.Range(), []int{};
-	fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
+	if returned, correct := proto.Range(), []int{}; fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
 		fmt.Printf(errStr, correct, returned)
 	}
-	if returned, correct := proto.Range(5), []int{0, 1, 2, 3, 4};
-	fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
+	if returned, correct := proto.Range(5), []int{0, 1, 2, 3, 4}; fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
 		fmt.Printf(errStr, correct, returned)
 	}
-	if returned, correct := proto.Range(10, 15), []int{10, 11, 12, 13, 14};
-	fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
+	if returned, correct := proto.Range(10, 15), []int{10, 11, 12, 13, 14}; fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
 		fmt.Printf(errStr, correct, returned)
 	}
-	if returned, correct := proto.Range(27, 36, 2), []int{27, 29, 31, 33, 35};
-	fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
+	if returned, correct := proto.Range(27, 36, 2), []int{27, 29, 31, 33, 35}; fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
 		fmt.Printf(errStr, correct, returned)
 	}
-	if returned, correct := proto.Range(-2, 12, 3), []int{-2, 1, 4, 7, 10};
-	fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
+	if returned, correct := proto.Range(-2, 12, 3), []int{-2, 1, 4, 7, 10}; fmt.Sprintf("%v", returned) != fmt.Sprintf("%v", correct) {
 		fmt.Printf(errStr, correct, returned)
 	}
 }

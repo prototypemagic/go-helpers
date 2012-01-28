@@ -5,7 +5,7 @@
 package proto
 
 import (
-    "fmt"
+	"fmt"
 	"proto"
 )
 
@@ -16,16 +16,14 @@ func Range(values ...int) []int {
 
 	length := len(values)
 	switch length {
-	case 0:
-		;
+	default: // Covers length == 0
+		fallthrough
 	case 1:
 		max = values[0]
 	case 2:
 		min, max = values[0], values[1]
 	case 3:
 		min, max, step = values[0], values[1], values[2]
-	default:
-		;
 	}
 	// Main loop. Gets executed no matter what
 	for i := min; i < max; i += step {

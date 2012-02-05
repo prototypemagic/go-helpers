@@ -5,3 +5,5 @@
 *-64
 *.8
 *-32
+proto
+proto_test

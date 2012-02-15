@@ -9,6 +9,8 @@ import (
 	"proto"
 )
 
+// Range emulates Python's range() function. Currently only works with
+// ints. TODO: Use the 'reflect' pkg to make this work for all types
 func Range(values ...int) []int {
 	var intSlice []int
 	var min, max int
@@ -31,3 +33,6 @@ func Range(values ...int) []int {
 	}
 	return intSlice
 }
+
+// Unpacker simulates Python's list/tuple unpacking by returning the
+// correct number of items -- one per element in the slice

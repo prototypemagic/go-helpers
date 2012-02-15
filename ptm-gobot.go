@@ -147,6 +147,11 @@ func gitRepoDataParser(repoName string) map[string]string {
 	cmd.Dir = repoPath  // Where cmd is run from
 	output, err := cmd.Output()
 	if err != nil {
+		// Try bare/
+		if !strings.Contains(repoName, "/bare") {
+			return gitRepoDataParser(repoName + "/bare")
+		}
+
 		// ircMsg(fmt.Sprintf("Error from cmd.Output() in gitRepoDataParser: %v",
 		// 	err))
 		if repos := listRepos(); repos != "" {

@@ -20,7 +20,7 @@ const (
 var conn net.Conn
 
 func main() {
-	var err os.Error
+	var err error
 
 	conn, err = ircSetup()
 	defer conn.Close()
@@ -95,9 +95,9 @@ func main() {
 	}
 }
 
-func ircSetup() (net.Conn, os.Error) {
+func ircSetup() (net.Conn, error) {
 	//IRC_CHANNELS := []string{"#ptmtest"}
-	var err os.Error
+	var err error
 	conn, err = net.Dial("tcp", IRC_SERVER)
 	if err == nil {
 		ircMsg("NICK " + BOT_NICK)

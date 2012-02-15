@@ -15,7 +15,7 @@ import (
 
 const (
 	IRC_SERVER      = "irc.freenode.net:6667"
-	BOT_NICK        = "ptm-gobot"
+	BOT_NICK        = "ptm_gobot"
 	IRC_CHANNEL     = "#prototypemagic"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
@@ -35,6 +35,16 @@ func checkError(where string, err error) {
 var conn net.Conn
 
 func main() {
+	// If the constants are valid, this program cannot crash. Period.
+	defer func() {
+		if err := recover(); err != nil {
+			msg := fmt.Sprintf("Recovered from nasty error in main: %v\n", err)
+			// ircMsg(msg)
+			fmt.Print(msg)
+		}
+	}()
+
+	// Connect to IRC
 	conn = ircSetup()
 	defer conn.Close()
 
@@ -48,67 +58,48 @@ func main() {
 	//
 	read_buf := make([]byte, 512)
 	for {
-		length, err := conn.Read(read_buf)
+		// n bytes read
+		n, err := conn.Read(read_buf)
 		checkError("conn.Read", err)
-		msg := string(read_buf[:length])
-		fmt.Printf("%v\n", msg)
+		data := string(read_buf[:n-2])  // Ignore trailing \r\n
+		fmt.Printf("%v\n", data)
 		//
 		// Respond to PING
 		//
-		if strings.HasPrefix(msg, "PING") {
-			rawIrcMsg("PONG " + msg)
+		if strings.HasPrefix(data, "PING") {
+			rawIrcMsg("PONG " + data)
 		}
 		//
-		// Parse nick
+		// Parse nick, msg
 		//
-		if strings.Contains(msg, "PRIVMSG") {
-			// Splits message in 2 parts.  Trailing [1:] ignores leading :
-			nick := strings.SplitN(msg, "!", 2)[0][1:] // I love Go
-			fmt.Printf("Sent by " + nick)
+
+		// Avoids ~global var risk by resetting these to "" each loop
+		var msg, nick string = "", ""
+
+		if strings.Contains(data, "PRIVMSG") {
+			// structure of `data` == :nick!host PRIVMSG #channel :msg
+
+			// nick == everything after first char, before first !
+			nick = strings.SplitN(data[1:], "!", 2)[0]
+			// fmt.Printf("Nick: '%v'\n", nick)
+
+			// msg == everything after second :
+			msg = strings.SplitN(data, ":", 3)[2]
+			// fmt.Printf("Message: '%v'\n", msg)
 		}
 		//
-		// Parse msg
+		// ADD YOUR CODE (or function calls) HERE
 		//
-
-
-		// parseQuit()
-		// parseTime()
-		// parseTime24()
-		// parseProjectRead()
-		// parseProjectEmpty()
-		// parseProjectAdd()
-		// parseGoogle()
-		// parseG()
-		// parseLucky()
-		// parseWikilink()
-		// parseMsg()
-		// parsePrivMsg()
-		// parseWiki()
-		// parseHelp()
-		// parseMembers()
-		// parseStats()
-		// parseUserlist()
-		// parseIrcbot()
-		// parseIrcbot()
-		// parseEcho()
-		// parseBadlist()
-		// parseGoodlist()
-		// parseProfanity()
-		// parseShutup()
-		// parseFuckyou()
-		// parseDefine()
-		// parseDefine()
-		// parseUrbandef()
-		// parseUrbandef()
-		// parseWhoami()
-		// parseMorse()
-		// parseConvert()
+		if strings.HasPrefix(msg, "!") {
+			ircMsg(nick + ": are you talkin' to me?")
+		}
 	}
 }
 
 func ircSetup() net.Conn {
-	//IRC_CHANNELS := []string{"#prototypemagic"}
 	var err error
+	// Avoid the temptation... `conn, err := ...` silently shadows the
+	// global `conn` variable!
 	conn, err = net.Dial("tcp", IRC_SERVER)
 	checkError("net.Dial", err)
 
@@ -139,40 +130,38 @@ func gitRepoDataParser(repoName string) map[string]string {
 			log.Print(msg)
 		}
 	}()
+	// Alternatives to this I can think of: change global
+	// REPO_BASE_PATH from const into var (global variables == bad!)
+	repoBase := REPO_BASE_PATH[:]
 
-	const (
-		// REPO_BASE_PATH = "/home/ubuntu/django_projects/"
-		GIT_COMMAND = "git log -1"
-	)
-	repoBase := string(REPO_BASE_PATH)
-
-	// If given repo name begins with /, treat as user giving absolute
-	// path
+	// If repoName begins with /, user is giving absolute path to repo
 	if strings.HasPrefix(repoName, "/") {
 		repoBase = ""
 	}
 	repoPath := repoBase + repoName
-	// fmt.Printf("repoPath == %v\n", repoPath)
 
 	// Create *Command object
+	const GIT_COMMAND = "git log -1"
 	args := strings.Split(GIT_COMMAND, " ")
-	// fmt.Printf("args == %v\n", args)
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = repoPath  // Where cmd is run from
 	output, err := cmd.Output()
 	if err != nil {
 		// ircMsg(fmt.Sprintf("Error from cmd.Output() in gitRepoDataParser: %v",
 		// 	err))
-		ircMsg("Invalid repo name. Options: " + listRepos())
+		if repos := listRepos(); repos != "" {
+			ircMsg("Invalid repo name. Options: " + repos)
+		}
 		return nil
 	}
 
-	// `output` now contains GIT_COMMAND output
+	// `output` now contains output from GIT_COMMAND
 
 	lines := strings.SplitN(string(output), "\n", 4)
 	// commitLine := lines[0]
 	authorLine := lines[1]
 	// dateLine := lines[2]
+	// TODO: Assumes entire commit message is on on one line
 	commitMsg := strings.Replace(lines[3], "\n", "", -1)[4:]
 
 	tokens := strings.Split(authorLine[8:], " ")
@@ -223,7 +212,6 @@ func gitListener() {
 
 		repoName := string(buf[:n])
 		log.Printf("Repo name received: '%v'", repoName)
-		// repoName = ""
 
 		repoInfo := gitRepoDataParser(repoName)
 		if repoInfo != nil {
@@ -239,26 +227,40 @@ func gitListener() {
 func listRepos() string {
 	result, err := ioutil.ReadFile(REPO_BASE_PATH + REPO_INDEX_FILE)
 	if err != nil {
-		msg := fmt.Sprintf("No index file found")
-		fmt.Printf("%v\n", msg)
-		// ircMsg(msg)
+		fmt.Printf("%v\n", "No index file found")
 
 		// List directory contents instead
 
 		// TODO: Look for subdirectories of REPO_BASE_PATH containing
-		// .git/, uh, subdirectories
+		// .git/ -- wait for it -- subdirectories
 		cmd := exec.Command("ls")
 		cmd.Dir = REPO_BASE_PATH
 		// If no error, `result` used after this block
 		result, err = cmd.Output()
 		if err != nil {
-			msg = "Can't run 'ls'?! Somebody screwed up the REPO_BASE_PATH..."
+			fmt.Printf("%v\n", err)
+			msg := "Can't run 'ls'?! Somebody screwed up REPO_BASE_PATH..."
 			fmt.Printf("%v\n", msg)
 			ircMsg(msg)
 			return ""
 		}
 	}
 	// `result` came from .index file or REPO_BASE_PATH dir listing
-	repoNames := strings.Split(string(result), "\n")
+	repoStr := string(result)
+
+	// No valid repo supplied, no .index file, and REPO_BASE_PATH
+	// doesn't exist(?). TODO: double-check when it's not 6:30am after
+	// you've stayed up all night...
+	if repoStr == "" {
+		return ""
+	}
+
+	repoNames := strings.Split(repoStr, "\n")
+
+	// Remove last repo in repoNames if it's empty (comes from
+	// trailing newline in REPO_INDEX_FILE)
+	if repoNames[len(repoNames)-1] == "" {
+		repoNames = repoNames[:len(repoNames)-1]
+	}
 	return strings.Join(repoNames, ", ")
 }

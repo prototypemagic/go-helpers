@@ -151,11 +151,10 @@ func gitRepoDataParser(repoName string) map[string]string {
 		if !strings.Contains(repoName, "/bare") {
 			return gitRepoDataParser(repoName + "/bare")
 		}
-
 		// ircMsg(fmt.Sprintf("Error from cmd.Output() in gitRepoDataParser: %v",
 		// 	err))
 		if repos := listRepos(); repos != "" {
-			ircMsg("Invalid repo name. Options: " + repos)
+			ircMsg("Repo not found. Options (probably): " + repos)
 		}
 		return nil
 	}

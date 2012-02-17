@@ -16,8 +16,8 @@ import (
 
 const (
 	IRC_SERVER      = "irc.freenode.net:6667"
-	BOT_NICK        = "ptm_gobot2"
-	IRC_CHANNEL     = "#ptmtest"
+	BOT_NICK        = "ptm_gobot"
+	IRC_CHANNEL     = "#prototypemagic"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
 	// REPO_BASE_PATH  = "/home/steve/django_projects/"
@@ -35,6 +35,9 @@ func checkError(where string, err error) {
 
 // Only one connection allowed (subject to change)
 var conn net.Conn
+
+// Anything passed to this channel is echoed into IRC_CHANNEL
+var irc = make(chan string)
 
 func main() {
 	// If the constants are valid, this program cannot crash. Period.
@@ -58,6 +61,12 @@ func main() {
 	// Listen for (WebHook-powered) JSON POSTs from GitHub to port
 	// WEBHOOK_PORT
 	go webhookListener()
+
+	// Anything passed to the `irc` channel (get it?) is echoed into
+	// IRC_CHANNEL
+	go func() {
+		for { ircMsg(<-irc) }
+	}()
 
 	//
 	// Main loop
@@ -123,6 +132,7 @@ func rawIrcMsg(str string) {
 func ircMsg(msg string) {
 	rawIrcMsg(PREFACE + msg)
 }
+
 
 func gitRepoDataParser(repoName string) map[string]string {
 	defer func() {
@@ -297,14 +307,10 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 	// w.Write([]byte(info))
 	fmt.Printf("%v\n\n\n", data)
 
-	lines := strings.Split(data, "\n")
-	for _, line := range lines {
-		if strings.Contains(line, "https://github.com/prototypemagic") {
-			str := line+"\n\n"
-			fmt.Printf("%v\n", str)
-			// w.Write([]byte(str))
-		}
-	}
+	irc <- "One of you pushed something to a PTM GitHub repo!"
+
+	// See http://blog.golang.org/2011/01/json-and-go.html
+
 	return
 
 	// w.Write(append( []byte(fmt.Sprintf("%+#v\n\nBODY:\n%s\n\nREQUESTURI:\n%+#v",

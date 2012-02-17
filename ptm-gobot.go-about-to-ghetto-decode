@@ -305,13 +305,24 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	fmt.Printf("Everything:\n%+#v\n\n", req)
+	fmt.Printf("Here's the body:\n%s\n", body)
 	decoded, err := url.Parse(fmt.Sprintf("%s", body))
 	if err != nil {
 		fmt.Printf("Error parsing body: %v\n", err)
 	}
+	fmt.Printf("Decoded body: %s\n", decoded.Path)
+	// data := fmt.Sprintf("Got this: %s", body)
+	// w.Write([]byte(info))
 
-	_ = decoded.Path
-	// regex := `"url":"https://github.com/prototypemagic/(.*)"`
+	data := req.FormValue("payload")
+	fmt.Printf("Unparsed payload: %v\n", data)
+	// if err != nil { fmt.Printf("Error getting payload: %v\n", err) }
+
+	decoded, err = url.Parse(data)
+	if err != nil {
+		fmt.Printf("Error parsing data: %v\n", err)
+	}
+	fmt.Printf("Look like JSON?\n%s\n\n\n", decoded)
 
 	irc <- "One of you pushed something to a PTM GitHub repo!... " +
 		"or maybe Steve's just fuckin' with us"

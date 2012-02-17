@@ -19,7 +19,7 @@ import (
 const (
 	IRC_SERVER      = "irc.freenode.net:6667"
 	BOT_NICK        = "ptm_gobot"
-	IRC_CHANNEL     = "#ptmtest"
+	IRC_CHANNEL     = "#prototypemagic"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
 	// REPO_BASE_PATH  = "/home/steve/django_projects/"
@@ -305,18 +305,24 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		fmt.Printf("Error in webhookHandler: %v\n", err)
 		return
 	}
-	fmt.Printf("Everything:\n%+#v\n\n", req)
+	// fmt.Printf("Everything:\n%+#v\n\n", req)
+
+	// fmt.Printf("Entire body:\n%s\n", body)
+
 	decoded, err := url.Parse(fmt.Sprintf("%s", body))
 	if err != nil {
 		fmt.Printf("Error parsing body: %v\n", err)
 	}
-
 	decodedBody := decoded.Path
+
+	// FIXME: Get req.FormValue("payload") or similar to work and
+	// strip out the following bullshit...
 
 	get_pusher := regexp.MustCompile(`"pusher":{"name":"(.*)","email`)
 	str := get_pusher.FindStringSubmatch(decodedBody)[1]
 	decodedURL, _ := url.Parse(str)
-	author := decodedURL.Path
+	quote := strings.Index(decodedURL.Path, `"`)
+	author := decodedURL.Path[:quote]
 	
 	get_repo_name := regexp.MustCompile(`"repository":{"name":"(.*)","size`)
 	str = get_repo_name.FindStringSubmatch(decodedBody)[1]

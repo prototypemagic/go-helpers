@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"os/exec"
 	"strings"
 	"time"
@@ -15,14 +16,15 @@ import (
 
 const (
 	IRC_SERVER      = "irc.freenode.net:6667"
-	BOT_NICK        = "ptm_gobot"
-	IRC_CHANNEL     = "#prototypemagic"
+	BOT_NICK        = "ptm_gobot2"
+	IRC_CHANNEL     = "#ptmtest"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
 	// REPO_BASE_PATH  = "/home/steve/django_projects/"
 	REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
 	REPO_INDEX_FILE = ".index"
-	GIT_LISTEN_PORT = "6666"
+	GIT_PORT        = "6666"
+	WEBHOOK_PORT    = "7777"
 )
 
 func checkError(where string, err error) {
@@ -48,10 +50,14 @@ func main() {
 	conn = ircSetup()
 	defer conn.Close()
 
-	// Listen for repo names on port GIT_LISTEN_PORT, then echo info
+	// Listen for repo names on port GIT_PORT, then echo info
 	// from latest commit into IRC_CHANNEL. Currently triggered by
 	// post-receive git hooks.
 	go gitListener()
+
+	// Listen for (WebHook-powered) JSON POSTs from GitHub to port
+	// WEBHOOK_PORT
+	go webhookListener()
 
 	//
 	// Main loop
@@ -81,18 +87,15 @@ func main() {
 
 			// nick == everything after first char, before first !
 			nick = strings.SplitN(data[1:], "!", 2)[0]
-			// fmt.Printf("Nick: '%v'\n", nick)
+			fmt.Printf("Nick: '%v'\n", nick)
 
 			// msg == everything after second :
 			msg = strings.SplitN(data, ":", 3)[2]
-			// fmt.Printf("Message: '%v'\n", msg)
+			fmt.Printf("Message: '%v'\n", msg)
 		}
 		//
 		// ADD YOUR CODE (or function calls) HERE
 		//
-		if strings.HasPrefix(msg, "!") {
-			ircMsg(nick + ": are you talkin' to me?")
-		}
 	}
 }
 
@@ -182,7 +185,7 @@ func gitRepoDataParser(repoName string) map[string]string {
 	return repoInfo
 }
 
-// gitListener listens on localhost:GIT_LISTEN_PORT for git repo names
+// gitListener listens on localhost:GIT_PORT for git repo names
 // coming from git post-receive hooks, then
 func gitListener() {
 	defer func() {
@@ -193,7 +196,8 @@ func gitListener() {
 		}
 	}()
 
-	addr := "127.0.0.1:" + GIT_LISTEN_PORT
+	// Create TCP connection
+	addr := "127.0.0.1:" + GIT_PORT
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	checkError("net.ResolveTCPAddr", err)
 
@@ -267,4 +271,61 @@ func listRepos() string {
 		repoNames = repoNames[:len(repoNames)-1]
 	}
 	return strings.Join(repoNames, ", ")
+}
+
+//
+// Accept GitHub Webhook data (qua JSON file) on port 7777
+//
+
+// TODO: Define JSON "template" as struct to capture its structure?
+
+func webhookHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		info := fmt.Sprintf("req:\n\n%+#v\n", req)
+		fmt.Printf("%v\n", info)
+		// w.Write([]byte(info))
+		return
+	}
+	body := make([]byte, req.ContentLength)
+	_, err := req.Body.Read(body)
+	defer req.Body.Close()
+	if err != nil {
+		fmt.Printf("Error in webhookHandler: %v\n", err)
+		return
+	}
+	data := fmt.Sprintf("Got this: %s", body)
+	// w.Write([]byte(info))
+	fmt.Printf("%v\n\n\n", data)
+
+	lines := strings.Split(data, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "https://github.com/prototypemagic") {
+			str := line+"\n\n"
+			fmt.Printf("%v\n", str)
+			// w.Write([]byte(str))
+		}
+	}
+	return
+
+	// w.Write(append( []byte(fmt.Sprintf("%+#v\n\nBODY:\n%s\n\nREQUESTURI:\n%+#v",
+	// 	req, body, req.RequestURI)) ))
+
+	// // Echo body right back
+	// w.Header().Set("Content-Type", "application/json")
+	// w.Write(body)
+	// w.Header().Set("Content-Type", "text/plain")
+	// w.Write([]byte(""))
+}
+
+// webhookListener listens on WEBHOOK_PORT (default: 7777) for JSON
+// HTTP POSTs, parses the relevant data, then sends it over a channel
+// to a function waiting for strings to echo into IRC_CHANNEL
+func webhookListener() {
+	http.HandleFunc("/webhook", webhookHandler)
+	// err := http.ListenAndServeTLS(":"+WEBHOOK_PORT, "cert.pem", "key.pem", nil)
+	err := http.ListenAndServe(":"+WEBHOOK_PORT, nil)
+	if err != nil {
+		fmt.Printf("Error in webhookListener ListenAndServe: %v\n", err)
+		time.Sleep(2e9)
+	}
 }

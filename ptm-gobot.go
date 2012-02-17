@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -310,11 +311,19 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		fmt.Printf("Error parsing body: %v\n", err)
 	}
 
-	_ = decoded.Path
-	// regex := `"url":"https://github.com/prototypemagic/(.*)"`
+	decodedBody := decoded.Path
 
-	irc <- "One of you pushed something to a PTM GitHub repo!... " +
-		"or maybe Steve's just fuckin' with us"
+	get_pusher := regexp.MustCompile(`"pusher":{"name":"(.*)","email`)
+	str := get_pusher.FindStringSubmatch(decodedBody)[1]
+	decodedURL, _ := url.Parse(str)
+	author := decodedURL.Path
+	
+	get_repo_name := regexp.MustCompile(`"repository":{"name":"(.*)","size`)
+	str = get_repo_name.FindStringSubmatch(decodedBody)[1]
+	decodedURL, _ = url.Parse(str)
+	repo := decodedURL.Path
+
+	irc <- fmt.Sprintf("%v just pushed to %v on GitHub!", author, repo)
 
 	// See http://blog.golang.org/2011/01/json-and-go.html
 

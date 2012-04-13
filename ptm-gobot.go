@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,21 +12,23 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
-	"regexp"
+	// "regexp"
 	"strings"
 	"time"
 )
 
 const (
 	IRC_SERVER         = "irc.freenode.net:6667"
+
 	BOT_NICK           = "ptm_gobot"
 	IRC_CHANNEL        = "#prototypemagic"
 	REPO_BASE_PATH     = "/home/ubuntu/django_projects/"
+
 	// BOT_NICK           = "ptm_gobot2"
 	// IRC_CHANNEL        = "#ptmtest"
 	// REPO_BASE_PATH     = "/home/steve/django_projects/"
-	PREFACE            = "PRIVMSG " + IRC_CHANNEL + " :"
 
+	PREFACE            = "PRIVMSG " + IRC_CHANNEL + " :"
 	REPO_INDEX_FILE    = ".index"
 	GIT_PORT           = "6666"
 	WEBHOOK_PORT       = "7777"
@@ -397,31 +400,45 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 
 	// fmt.Printf("Entire body:\n%s\n", body)
 
-	decoded, err := url.Parse(fmt.Sprintf("%s", body))
+	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		fmt.Printf("Error parsing body: %v\n", err)
+		fmt.Printf("Error parsing body.\nbody == %s\n\nError: %v",
+			body, err)
+		return
 	}
-	decodedBody := decoded.Path
-
-	// FIXME: Get req.FormValue("payload") or similar to work and
-	// strip out the following bullshit...
-
-	getPusher := regexp.MustCompile(`"pusher":{"name":"(.*)","email`)
-	str := getPusher.FindStringSubmatch(decodedBody)[1]
-	decodedURL, _ := url.Parse(str)  // FIXME: Ignoring error, it seems
-	quote := strings.Index(decodedURL.Path, `"`)
-	author := decodedURL.Path[:quote]
-
-	getRepoName := regexp.MustCompile(`"repository":{"name":"(.*)","(size|created_at)"`)
-	allStrs := getRepoName.FindStringSubmatch(decodedBody)
-	for ndx, s := range allStrs {
-		fmt.Printf("allStrs[%v] == %v\n", ndx, s)
+	data := values["payload"][0]
+	b := []byte(data)
+	var m interface{}
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		msg := "Couldn't unmarshal WebHook data: " + data
+		ircMsg(msg)
+		log.Printf(msg)
+		return
 	}
-	str = allStrs[1]
-	decodedURL, _ = url.Parse(str)  // FIXME: Ignoring error, it seems
-	repo := decodedURL.Path
+	// Parse these pieces:
+	// gitCommit.Author = payload[pusher][name]
+	// gitCommit.Repo   = payload[repository][name]
+	// owner            = payload[repository][owner][name]
+	gitCommit := GitCommit{}
+	owner := ""
 
-	irc <- fmt.Sprintf("%v just pushed to %v on GitHub!", author, repo)
+	payload := m.(map[string]interface{})
+	for k, v := range payload {
+		if k == "pusher" {
+			pusher := v.(map[string]interface{})
+			gitCommit.Author = fmt.Sprintf("%v", pusher["name"])
+		}
+		if k == "repository" {
+			repository := v.(map[string]interface{})
+			gitCommit.Repo = fmt.Sprintf("%v", repository["name"])
+			repoOwner := repository["owner"].(map[string]interface{})
+			owner = fmt.Sprintf("%v", repoOwner["name"])
+		}
+	}
+
+	irc <- fmt.Sprintf("%v just pushed to %v/%v on GitHub!",
+		gitCommit.Author, owner, gitCommit.Repo)
 
 	// See http://blog.golang.org/2011/01/json-and-go.html
 

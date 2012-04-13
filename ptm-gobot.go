@@ -247,8 +247,8 @@ func gitCommandToOutput(fullRepoPath, command string) string {
 
 		// Now both /bare and _site have been tried. Giving up.
 
-		if repos := listRepos(); repos != "" {
-			ircMsg("Repo not found. Options (probably): " + repos)
+		if repoList := listRepos(); repoList != "" {
+			ircMsg("Repo not found. Options (probably): " + repoList)
 		}
 		return ""
 	}
@@ -396,26 +396,45 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	req.Body.Close()
-
-	// fmt.Printf("Everything:\n%+#v\n\n", req)
-
-	// fmt.Printf("Entire body:\n%s\n", body)
-
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
 		fmt.Printf("Error parsing body.\nbody == %s\n\nError: %v",
 			body, err)
 		return
 	}
+	// Parsing GitHub-specific format
 	data := values["payload"][0]
+	commit := webhookDataToGitCommit(data)
+	irc <- fmt.Sprintf(`%s just pushed to %s/%s on GitHub: "%s"`,
+		commit.Author, commit.RepoOwner, commit.Repo, commit.Message)
+	updateLocalGitHubRepo(commit.Repo)
+	return
+}
+
+// webhookListener listens on WEBHOOK_PORT (default: 7777) for JSON
+// HTTP POSTs, parses the relevant data, then sends it over a channel
+// to a function waiting for strings to echo into IRC_CHANNEL
+func webhookListener() {
+	http.HandleFunc("/webhook", webhookHandler)
+	// err := http.ListenAndServeTLS(":"+WEBHOOK_PORT, "cert.pem", "key.pem", nil)
+	err := http.ListenAndServe(":"+WEBHOOK_PORT, nil)
+	if err != nil {
+		fmt.Printf("Error in webhookListener ListenAndServe: %v\n", err)
+		time.Sleep(2e9)
+	}
+}
+
+func webhookDataToGitCommit(data string) GitCommit {
+	commit := GitCommit{}
+	// data string -> []byte -> Unmarshal into interface{}
 	b := []byte(data)
 	var m interface{}
-	err = json.Unmarshal(b, &m)
+	err := json.Unmarshal(b, &m)
 	if err != nil {
 		msg := "Couldn't unmarshal WebHook data: " + data
 		ircMsg(msg)
 		log.Printf(msg)
-		return
+		return commit
 	}
 	// Parse these pieces:
 	// // commit.Author    = payload[pusher][name]
@@ -425,8 +444,6 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 	// commit.Message   = payload[head_commit][message]
 	// commit.Repo      = payload[repository][name]
 	// commit.RepoOwner = payload[repository][owner][name]
-	commit := GitCommit{}
-
 	payload := m.(map[string]interface{})
 	for k, v := range payload {
 		if k == "head_commit" {
@@ -444,33 +461,11 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 			commit.RepoOwner = fmt.Sprintf("%v", repoOwner["name"])
 		}
 	}
-
-	irc <- fmt.Sprintf(`%v just pushed to %v/%v: "%v"`,
-		commit.Author, commit.RepoOwner, commit.Repo, commit.Message)
-
-	// See http://blog.golang.org/2011/01/json-and-go.html
-
-	return
-
-	// w.Write(append( []byte(fmt.Sprintf("%+#v\n\nBODY:\n%s\n\nREQUESTURI:\n%+#v",
-	// 	req, body, req.RequestURI)) ))
-
-	// // Echo body right back
-	// w.Header().Set("Content-Type", "application/json")
-	// w.Write(body)
-	// w.Header().Set("Content-Type", "text/plain")
-	// w.Write([]byte(""))
+	return commit
 }
 
-// webhookListener listens on WEBHOOK_PORT (default: 7777) for JSON
-// HTTP POSTs, parses the relevant data, then sends it over a channel
-// to a function waiting for strings to echo into IRC_CHANNEL
-func webhookListener() {
-	http.HandleFunc("/webhook", webhookHandler)
-	// err := http.ListenAndServeTLS(":"+WEBHOOK_PORT, "cert.pem", "key.pem", nil)
-	err := http.ListenAndServe(":"+WEBHOOK_PORT, nil)
-	if err != nil {
-		fmt.Printf("Error in webhookListener ListenAndServe: %v\n", err)
-		time.Sleep(2e9)
-	}
+func updateLocalGitHubRepo(repoName string) {
+	fullRepoPath := LOCAL_GITHUB_REPOS + repoName
+	const command = "git pull origin master"
+	_ = gitCommandToOutput(fullRepoPath, command)
 }

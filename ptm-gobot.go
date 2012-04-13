@@ -39,6 +39,7 @@ type GitCommit struct {
 	Author string
 	Email string
 	Repo string
+	RepoOwner string
 	Message string
 	Date string
 	Hash string
@@ -395,7 +396,7 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	req.Body.Close()
-	
+
 	// fmt.Printf("Everything:\n%+#v\n\n", req)
 
 	// fmt.Printf("Entire body:\n%s\n", body)
@@ -417,28 +418,35 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// Parse these pieces:
-	// gitCommit.Author = payload[pusher][name]
-	// gitCommit.Repo   = payload[repository][name]
-	// owner            = payload[repository][owner][name]
-	gitCommit := GitCommit{}
-	owner := ""
+	// // commit.Author    = payload[pusher][name]
+	// // commit.Email     = payload[pusher][email]
+	// commit.Author    = payload[head_commit][author][username]
+	// commit.Email     = payload[head_commit][author][email]
+	// commit.Message   = payload[head_commit][message]
+	// commit.Repo      = payload[repository][name]
+	// commit.RepoOwner = payload[repository][owner][name]
+	commit := GitCommit{}
 
 	payload := m.(map[string]interface{})
 	for k, v := range payload {
-		if k == "pusher" {
-			pusher := v.(map[string]interface{})
-			gitCommit.Author = fmt.Sprintf("%v", pusher["name"])
+		if k == "head_commit" {
+			head_commit := v.(map[string]interface{})
+			msg := fmt.Sprintf("%v", head_commit["message"])
+			commit.Message = strings.Replace(msg, "\n", "    ", -1)
+			author := head_commit["author"].(map[string]interface{})
+			commit.Author = fmt.Sprintf("%v", author["username"])
+			commit.Email = fmt.Sprintf("%v", author["email"])
 		}
 		if k == "repository" {
 			repository := v.(map[string]interface{})
-			gitCommit.Repo = fmt.Sprintf("%v", repository["name"])
+			commit.Repo = fmt.Sprintf("%v", repository["name"])
 			repoOwner := repository["owner"].(map[string]interface{})
-			owner = fmt.Sprintf("%v", repoOwner["name"])
+			commit.RepoOwner = fmt.Sprintf("%v", repoOwner["name"])
 		}
 	}
 
-	irc <- fmt.Sprintf("%v just pushed to %v/%v on GitHub!",
-		gitCommit.Author, owner, gitCommit.Repo)
+	irc <- fmt.Sprintf(`%v just pushed to %v/%v: "%v"`,
+		commit.Author, commit.RepoOwner, commit.Repo, commit.Message)
 
 	// See http://blog.golang.org/2011/01/json-and-go.html
 

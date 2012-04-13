@@ -476,10 +476,10 @@ func updateLocalGitHubRepo(repoName string) {
 ========
 `, output)
 	if strings.Contains(output, "\nFast-forward") {
-		ircMsg("Successfully updated " + fullRepoPath + \
+		ircMsg("Successfully updated " + fullRepoPath +
 			" repo on " + THIS_SERVER_NAME)
 	} else {
-		ircMsg("Failed to pull from GitHub to " + fullRepoPath + \
+		ircMsg("Failed to pull from GitHub to " + fullRepoPath +
 			" repo on " + THIS_SERVER_NAME)
 	}
 }

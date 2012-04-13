@@ -412,7 +412,7 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 	author := decodedURL.Path[:quote]
 
 	get_repo_name := regexp.MustCompile(`"repository":{"name":"(.*)","(size|created_at)"`)
-	allStrs = get_repo_name.FindStringSubmatch(decodedBody)
+	allStrs := get_repo_name.FindStringSubmatch(decodedBody)
 	str = allStrs[1]
 	decodedURL, _ = url.Parse(str)
 	repo := decodedURL.Path

@@ -163,13 +163,13 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 	GIT_COMMAND := "git log -1"
 	GIT_COMMAND_IF_MERGE := "git log -2"
 
-	output := gitCommandToOutput(repoPath, repoName, GIT_COMMAND)
+	output := gitCommandToOutput(repoPath, GIT_COMMAND)
 	if output == "" {
 		return GitCommit{}
 	}
 	fmt.Printf("original output: \n%s\n", output)
 	if strings.Contains(output, "\nMerge:") {
-		commitStr := gitCommandToOutput(repoPath, repoName, GIT_COMMAND_IF_MERGE)
+		commitStr := gitCommandToOutput(repoPath, GIT_COMMAND_IF_MERGE)
 		regexStr := `commit [0-9a-f]{40}`
 		getCommitLine := regexp.MustCompile(regexStr)
 		commitStrs := getCommitLine.FindAllString(commitStr, -1)
@@ -178,7 +178,7 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 		splitOnMe := commitStrs[len(commitStrs)-1]
 		commits := strings.Split(commitStr, splitOnMe)
 		
-		output = commitStrs[0] + "\n" + commits[len(commits)-1]
+		output = commitStrs[0] + commits[len(commits)-1]
 	}
 	fmt.Printf("final output: \n%s\n", output)
 	lines := strings.SplitN(output, "\n", 4)
@@ -203,27 +203,27 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 }
 
 
-func gitCommandToOutput(repoPath, repoName, command string) string {
+func gitCommandToOutput(repoPath, command string) string {
     args := strings.Split(command, " ")
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = repoPath  // Where cmd is run from
 	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("repoName '%v' not found", repoName)
+		log.Printf("repo not found at '%v'", repoPath)
 		// Search ${repoName}/bare then ${repoName}_site for desired repo
 
 		// Try bare/ if neither has been tried
 		// (Should work on server)
-		if !strings.HasSuffix(repoName, "/bare") &&
-			!strings.HasSuffix(repoName, "_site") {
-			return gitCommandToOutput(repoName + "/bare", repoPath, command)
+		if !strings.HasSuffix(repoPath, "/bare") &&
+			!strings.HasSuffix(repoPath, "_site") {
+			return gitCommandToOutput(repoPath + "/bare", command)
 		}
 		// Try _site/ after trying bare/
 		// (Usually necessary locally)
-		if !strings.HasSuffix(repoName, "_site") {
+		if !strings.HasSuffix(repoPath, "_site") {
 			// Ignore last len("/bare") chars
-			repoName = repoName[:len(repoName)-len("/bare")]
-			return gitCommandToOutput(repoName + "_site", repoPath, command)
+			repoPath = repoPath[:len(repoPath)-len("/bare")]
+			return gitCommandToOutput(repoPath + "_site", command)
 		}
 
 		// Now both /bare and _site have been tried. Giving up.

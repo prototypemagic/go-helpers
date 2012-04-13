@@ -405,16 +405,16 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 	// FIXME: Get req.FormValue("payload") or similar to work and
 	// strip out the following bullshit...
 
-	get_pusher := regexp.MustCompile(`"pusher":{"name":"(.*)","email`)
-	str := get_pusher.FindStringSubmatch(decodedBody)[1]
-	decodedURL, _ := url.Parse(str)
+	getPusher := regexp.MustCompile(`"pusher":{"name":"(.*)","email`)
+	str := getPusher.FindStringSubmatch(decodedBody)[1]
+	decodedURL, _ := url.Parse(str)  // FIXME: Ignoring error, it seems
 	quote := strings.Index(decodedURL.Path, `"`)
 	author := decodedURL.Path[:quote]
 
-	get_repo_name := regexp.MustCompile(`"repository":{"name":"(.*)","(size|created_at)"`)
-	allStrs := get_repo_name.FindStringSubmatch(decodedBody)
+	getRepoName := regexp.MustCompile(`"repository":{"name":"(.*)","(size|created_at)"`)
+	allStrs := getRepoName.FindStringSubmatch(decodedBody)
 	str = allStrs[1]
-	decodedURL, _ = url.Parse(str)
+	decodedURL, _ = url.Parse(str)  // FIXME: Ignoring error, it seems
 	repo := decodedURL.Path
 
 	irc <- fmt.Sprintf("%v just pushed to %v on GitHub!", author, repo)

@@ -34,6 +34,8 @@ type GitCommit struct {
 	Email string
 	Repo string
 	Message string
+	Date string
+	Hash string
 }
 
 func checkError(where string, err error) {
@@ -161,44 +163,67 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 	}()
 
 	const GIT_COMMAND = "git log -1"
-	const GIT_COMMAND_IF_MERGE := "git log -2"
+	const GIT_COMMAND_IF_MERGE = "git log -2"
 
 	output := gitCommandToOutput(repoPath, GIT_COMMAND)
 	if output == "" {
 		return GitCommit{}
 	}
-	fmt.Printf("original output: \n%s\n", output)
 	if strings.Contains(output, "\nMerge:") {
 		commitStr := gitCommandToOutput(repoPath, GIT_COMMAND_IF_MERGE)
 		regexStr := `commit [0-9a-f]{40}`
 		getCommitLine := regexp.MustCompile(regexStr)
 		commitStrs := getCommitLine.FindAllString(commitStr, -1)
 
-		// Assumes at least one commit exists in output
+		// Assumes at least one commit exists in output... which
+		// should be fine
 		splitOnMe := commitStrs[len(commitStrs)-1]
 		commits := strings.Split(commitStr, splitOnMe)
-		
-		output = commitStrs[0] + commits[len(commits)-1]
-	}
-	fmt.Printf("final output: \n%s\n", output)
-	lines := strings.SplitN(output, "\n", 4)
-	// commitLine := lines[0]
-	authorLine := lines[1]
-	// dateLine := lines[2]
-	// TODO: Assumes entire commit message is on on one line
-	commitMsg := strings.Replace(lines[3], "\n", "", -1)[4:]
 
+		output = commitStrs[1] + commits[len(commits)-1]
+	}
+	lines := strings.SplitN(output, "\n", 4)
+
+	// Save each line indivudually
+	commitLine := lines[0]
+	authorLine := lines[1]
+	dateLine := lines[2]
+	commitMsg := strings.Replace(lines[3], "\n", "", -1)[len("    "):]
+
+	// Process lines
+
+	// Parse out commit hash
+	hash := strings.Split(commitLine, " ")[1]
+
+	// Parse out author info
 	tokens := strings.Split(authorLine[8:], " ")
-	authorEmail := tokens[len(tokens)-1]
+	authorEmailBraces := tokens[len(tokens)-1]
+	authorEmail := authorEmailBraces[1:len(authorEmailBraces)-1]
 	authorNames := tokens[:len(tokens)-1]
 	// authorFirst := authorNames[0]
 	author := strings.Join(authorNames, " ")
+
+	date := dateLine[len("Date:   "):]
+
 	commit := GitCommit {
+	Hash: hash,
 	Author: author,
 	Email: authorEmail,
-	Repo: repoName,
+	Date: date,
 	Message: commitMsg,
+	Repo: repoName,
 	}
+	fmt.Printf("`git log -1` should equal...\n")
+	fmt.Printf(`
+commit %v
+Author: %v <%v>
+Date:   %v
+
+    %v` + "\n",
+		commit.Hash,
+		commit.Author, commit.Email,
+		commit.Date,
+		commit.Message)
 	return commit
 }
 
@@ -396,7 +421,7 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 	decodedURL, _ := url.Parse(str)
 	quote := strings.Index(decodedURL.Path, `"`)
 	author := decodedURL.Path[:quote]
-	
+
 	get_repo_name := regexp.MustCompile(`"repository":{"name":"(.*)","size`)
 	str = get_repo_name.FindStringSubmatch(decodedBody)[1]
 	decodedURL, _ = url.Parse(str)

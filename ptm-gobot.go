@@ -389,13 +389,13 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		// w.Write([]byte(info))
 		return
 	}
-	body := make([]byte, req.ContentLength)
-	_, err := req.Body.Read(body)
-	defer req.Body.Close()
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		fmt.Printf("Error in webhookHandler: %v\n", err)
 		return
 	}
+	req.Body.Close()
+	
 	// fmt.Printf("Everything:\n%+#v\n\n", req)
 
 	// fmt.Printf("Entire body:\n%s\n", body)

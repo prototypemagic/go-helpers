@@ -413,6 +413,9 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 
 	getRepoName := regexp.MustCompile(`"repository":{"name":"(.*)","(size|created_at)"`)
 	allStrs := getRepoName.FindStringSubmatch(decodedBody)
+	for ndx, s := range allStrs {
+		fmt.Printf("allStrs[%v] == %v\n", ndx, s)
+	}
 	str = allStrs[1]
 	decodedURL, _ = url.Parse(str)  // FIXME: Ignoring error, it seems
 	repo := decodedURL.Path

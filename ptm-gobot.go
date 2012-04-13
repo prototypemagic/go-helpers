@@ -18,8 +18,8 @@ import (
 
 const (
 	IRC_SERVER      = "irc.freenode.net:6667"
-	BOT_NICK        = "ptm_gobot2"
-	IRC_CHANNEL     = "#ptmtest"
+	BOT_NICK        = "ptm_gobot"
+	IRC_CHANNEL     = "#prototypemagic"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
 	REPO_BASE_PATH  = "/home/steve/django_projects/"

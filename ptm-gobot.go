@@ -28,6 +28,7 @@ const (
 	// IRC_CHANNEL        = "#ptmtest"
 	// REPO_BASE_PATH     = "/home/steve/django_projects/"
 
+	THIS_SERVER_NAME   = "core PTM micro instance"
 	PREFACE            = "PRIVMSG " + IRC_CHANNEL + " :"
 	REPO_INDEX_FILE    = ".index"
 	GIT_PORT           = "6666"
@@ -475,6 +476,10 @@ func updateLocalGitHubRepo(repoName string) {
 ========
 `, output)
 	if strings.Contains(output, "\nFast-forward") {
-		ircMsg("Successfully updated " + fullRepoPath)
-	}	
+		ircMsg("Successfully updated " + fullRepoPath + \
+			" repo on " + THIS_SERVER_NAME)
+	} else {
+		ircMsg("Failed to pull from GitHub to " + fullRepoPath + \
+			" repo on " + THIS_SERVER_NAME)
+	}
 }

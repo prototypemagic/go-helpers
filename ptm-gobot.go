@@ -20,10 +20,12 @@ const (
 	IRC_SERVER      = "irc.freenode.net:6667"
 	BOT_NICK        = "ptm_gobot"
 	IRC_CHANNEL     = "#prototypemagic"
+	REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
+	// BOT_NICK        = "ptm_gobot2"
+	// IRC_CHANNEL     = "#ptmtest"
+	// REPO_BASE_PATH  = "/home/steve/django_projects/"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
-	// REPO_BASE_PATH  = "/home/steve/django_projects/"
-	REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
 	REPO_INDEX_FILE = ".index"
 	GIT_PORT        = "6666"
 	WEBHOOK_PORT    = "7777"
@@ -171,16 +173,10 @@ func repoToNonMergeCommit(fullRepoPath, repoName string) GitCommit {
 	}
 	if strings.Contains(output, "\nMerge:") {
 		commitStr := gitCommandToOutput(fullRepoPath, GIT_COMMAND_IF_MERGE)
-		regexStr := `commit [0-9a-f]{40}`
-		getCommitLine := regexp.MustCompile(regexStr)
-		commitStrs := getCommitLine.FindAllString(commitStr, -1)
-
-		// Assumes at least one commit exists in output... which
-		// should be fine
-		splitOnMe := commitStrs[len(commitStrs)-1]
-		commits := strings.Split(commitStr, splitOnMe)
-
-		output = commitStrs[1] + commits[len(commits)-1]
+		// Find beginning of second-to-last commit (which is the most
+		// recent non-merge commit)
+		ndx := strings.Index(commitStr, "\ncommit ")
+		output = commitStr[ndx+1:]
 	}
 	lines := strings.SplitN(output, "\n", 4)
 
@@ -227,7 +223,7 @@ func gitCommandToOutput(fullRepoPath, command string) string {
 	cmd.Dir = fullRepoPath  // Where cmd is run from
 	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("repo not found at '%v'", fullRepoPath)
+		log.Printf("Repo not found at '%v'", fullRepoPath)
 		// Search ${repoName}/bare then ${repoName}_site for desired repo
 
 		// Try bare/ if neither has been tried

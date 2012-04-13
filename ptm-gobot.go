@@ -18,16 +18,23 @@ import (
 
 const (
 	IRC_SERVER      = "irc.freenode.net:6667"
-	BOT_NICK        = "ptm_gobot"
-	IRC_CHANNEL     = "#prototypemagic"
+	BOT_NICK        = "ptm_gobot2"
+	IRC_CHANNEL     = "#ptmtest"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
-	// REPO_BASE_PATH  = "/home/steve/django_projects/"
-	REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
+	REPO_BASE_PATH  = "/home/steve/django_projects/"
+	// REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
 	REPO_INDEX_FILE = ".index"
 	GIT_PORT        = "6666"
 	WEBHOOK_PORT    = "7777"
 )
+
+type GitCommit struct {
+	Author string
+	Email string
+	Repo string
+	Message string
+}
 
 func checkError(where string, err error) {
 	if err != nil {
@@ -135,48 +142,46 @@ func ircMsg(msg string) {
 	rawIrcMsg(PREFACE + msg)
 }
 
-
-func gitRepoDataParser(repoName string) map[string]string {
+func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
+	// defer func(where string) {
+	// 	if err := recover(); err != nil {
+	// 		msg := fmt.Sprintf("Recovered from error in %v: %v",
+	// 			where, err)
+	// 		ircMsg(msg)
+	// 		log.Print(msg)
+	// 	}
+	// }("repoToNonMergeCommit")
 	defer func() {
 		if err := recover(); err != nil {
-			msg := fmt.Sprintf("Recovered from error in gitRepoDataParser: %v",
+			msg := fmt.Sprintf("Recovered from error in repoToNonMergeCommit: %v",
 				err)
 			ircMsg(msg)
 			log.Print(msg)
 		}
 	}()
-	// Alternatives to this I can think of: change global
-	// REPO_BASE_PATH from const into var (global variables == bad!)
-	repoBase := REPO_BASE_PATH[:]
 
-	// If repoName begins with /, user is giving absolute path to repo
-	if strings.HasPrefix(repoName, "/") {
-		repoBase = ""
+	GIT_COMMAND := "git log -1"
+	GIT_COMMAND_IF_MERGE := "git log -2"
+
+	output := gitCommandToOutput(repoPath, repoName, GIT_COMMAND)
+	if output == "" {
+		return GitCommit{}
 	}
-	repoPath := repoBase + repoName
+	fmt.Printf("original output: \n%s\n", output)
+	if strings.Contains(output, "\nMerge:") {
+		commitStr := gitCommandToOutput(repoPath, repoName, GIT_COMMAND_IF_MERGE)
+		regexStr := `commit [0-9a-f]{40}`
+		getCommitLine := regexp.MustCompile(regexStr)
+		commitStrs := getCommitLine.FindAllString(commitStr, -1)
 
-	// Create *Command object
-	const GIT_COMMAND = "git log -1"
-	args := strings.Split(GIT_COMMAND, " ")
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Dir = repoPath  // Where cmd is run from
-	output, err := cmd.Output()
-	if err != nil {
-		// Try bare/
-		if !strings.Contains(repoName, "/bare") {
-			return gitRepoDataParser(repoName + "/bare")
-		}
-		// ircMsg(fmt.Sprintf("Error from cmd.Output() in gitRepoDataParser: %v",
-		// 	err))
-		if repos := listRepos(); repos != "" {
-			ircMsg("Repo not found. Options (probably): " + repos)
-		}
-		return nil
+		// Assumes at least one commit exists in output
+		splitOnMe := commitStrs[len(commitStrs)-1]
+		commits := strings.Split(commitStr, splitOnMe)
+		
+		output = commitStrs[0] + "\n" + commits[len(commits)-1]
 	}
-
-	// `output` now contains output from GIT_COMMAND
-
-	lines := strings.SplitN(string(output), "\n", 4)
+	fmt.Printf("final output: \n%s\n", output)
+	lines := strings.SplitN(output, "\n", 4)
 	// commitLine := lines[0]
 	authorLine := lines[1]
 	// dateLine := lines[2]
@@ -188,13 +193,75 @@ func gitRepoDataParser(repoName string) map[string]string {
 	authorNames := tokens[:len(tokens)-1]
 	// authorFirst := authorNames[0]
 	author := strings.Join(authorNames, " ")
+	commit := GitCommit {
+	Author: author,
+	Email: authorEmail,
+	Repo: repoName,
+	Message: commitMsg,
+	}
+	return commit
+}
 
-	repoInfo := map[string]string{}
-	repoInfo["author"] = author
-	repoInfo["email"] = authorEmail
-	repoInfo["repo"] = repoName
-	repoInfo["message"] = commitMsg
-	return repoInfo
+
+func gitCommandToOutput(repoPath, repoName, command string) string {
+    args := strings.Split(command, " ")
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Dir = repoPath  // Where cmd is run from
+	output, err := cmd.Output()
+	if err != nil {
+		log.Printf("repoName '%v' not found", repoName)
+		// Search ${repoName}/bare then ${repoName}_site for desired repo
+
+		// Try bare/ if neither has been tried
+		// (Should work on server)
+		if !strings.HasSuffix(repoName, "/bare") &&
+			!strings.HasSuffix(repoName, "_site") {
+			return gitCommandToOutput(repoName + "/bare", repoPath, command)
+		}
+		// Try _site/ after trying bare/
+		// (Usually necessary locally)
+		if !strings.HasSuffix(repoName, "_site") {
+			// Ignore last len("/bare") chars
+			repoName = repoName[:len(repoName)-len("/bare")]
+			return gitCommandToOutput(repoName + "_site", repoPath, command)
+		}
+
+		// Now both /bare and _site have been tried. Giving up.
+
+		if repos := listRepos(); repos != "" {
+			ircMsg("Repo not found. Options (probably): " + repos)
+		}
+		return ""
+	}
+	return string(output)
+}
+
+
+func gitRepoNameToPath(repoName string) string {
+	// Alternatives to this I can think of: change global
+	// REPO_BASE_PATH from const into var (global variables == bad!)
+	repoBase := REPO_BASE_PATH[:]
+
+	// If repoName begins with /, user is giving absolute path to repo
+	if strings.HasPrefix(repoName, "/") {
+		repoBase = ""
+	}
+    return repoBase + repoName
+}
+
+
+func gitRepoDataParser(repoName string) GitCommit {
+	defer func() {
+		if err := recover(); err != nil {
+			msg := fmt.Sprintf("Recovered from error in gitRepoDataParser: %v",
+				err)
+			ircMsg(msg)
+			log.Print(msg)
+		}
+	}()
+	repoPath := gitRepoNameToPath(repoName)
+	commit := repoToNonMergeCommit(repoPath, repoName)
+	return commit
 }
 
 // gitListener listens on localhost:GIT_PORT for git repo names
@@ -233,10 +300,11 @@ func gitListener() {
 		repoName := string(buf[:n])
 		log.Printf("Repo name received: '%v'", repoName)
 
-		repoInfo := gitRepoDataParser(repoName)
-		if repoInfo != nil {
+		gitCommit := gitRepoDataParser(repoName)
+		empty := GitCommit{}
+		if gitCommit != empty {
 			msg := fmt.Sprintf(`%v pushed to %v: "%v"`,
-				repoInfo["author"], repoName, repoInfo["message"])
+				gitCommit.Author, repoName, gitCommit.Message)
 			ircMsg(msg)
 		}
 		conn.Close()
@@ -253,6 +321,11 @@ func listRepos() string {
 
 		// TODO: Look for subdirectories of REPO_BASE_PATH containing
 		// .git/ -- wait for it -- subdirectories
+
+		// Only include directory names
+		// TODO: Assumes sub-directories do not include spaces
+		// cmd := exec.Command("ls -l | grep ^d | awk '{print $9}'")
+
 		cmd := exec.Command("ls")
 		cmd.Dir = REPO_BASE_PATH
 		// If no error, `result` used after this block

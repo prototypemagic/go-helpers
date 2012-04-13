@@ -469,5 +469,12 @@ func updateLocalGitHubRepo(repoName string) {
 	fullRepoPath := LOCAL_GITHUB_REPOS + repoName
 	const command = "git pull origin master"
 	output := gitCommandToOutput(fullRepoPath, command)
-	fmt.Printf("Output from pull: %v\n", output)
+	fmt.Printf(`Output from pull:
+========
+%v
+========
+`, output)
+	if strings.Contains(output, "\nFast-forward") {
+		ircMsg("Successfully updated " + fullRepoPath)
+	}	
 }

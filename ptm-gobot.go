@@ -228,7 +228,8 @@ func gitCommandToOutput(fullRepoPath, command string) string {
 	cmd.Dir = fullRepoPath  // Where cmd is run from
 	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("Repo not found at '%v'", fullRepoPath)
+		log.Printf("No repo found at '%v'(?). Error: %v\n",
+			fullRepoPath, err)
 		// Search ${repoName}/bare then ${repoName}_site for desired repo
 
 		// Try bare/ if neither has been tried
@@ -467,5 +468,6 @@ func webhookDataToGitCommit(data string) GitCommit {
 func updateLocalGitHubRepo(repoName string) {
 	fullRepoPath := LOCAL_GITHUB_REPOS + repoName
 	const command = "git pull origin master"
-	_ = gitCommandToOutput(fullRepoPath, command)
+	output := gitCommandToOutput(fullRepoPath, command)
+	fmt.Printf("Output from pull: %v\n", output)
 }

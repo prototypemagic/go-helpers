@@ -17,18 +17,19 @@ import (
 )
 
 const (
-	IRC_SERVER      = "irc.freenode.net:6667"
-	BOT_NICK        = "ptm_gobot"
-	IRC_CHANNEL     = "#prototypemagic"
-	REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
-	// BOT_NICK        = "ptm_gobot2"
-	// IRC_CHANNEL     = "#ptmtest"
-	// REPO_BASE_PATH  = "/home/steve/django_projects/"
-	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
+	IRC_SERVER         = "irc.freenode.net:6667"
+	BOT_NICK           = "ptm_gobot"
+	IRC_CHANNEL        = "#prototypemagic"
+	REPO_BASE_PATH     = "/home/ubuntu/django_projects/"
+	// BOT_NICK           = "ptm_gobot2"
+	// IRC_CHANNEL        = "#ptmtest"
+	// REPO_BASE_PATH     = "/home/steve/django_projects/"
+	PREFACE            = "PRIVMSG " + IRC_CHANNEL + " :"
 
-	REPO_INDEX_FILE = ".index"
-	GIT_PORT        = "6666"
-	WEBHOOK_PORT    = "7777"
+	REPO_INDEX_FILE    = ".index"
+	GIT_PORT           = "6666"
+	WEBHOOK_PORT       = "7777"
+	LOCAL_GITHUB_REPOS = "/home/ubuntu/github_repos/"
 )
 
 type GitCommit struct {

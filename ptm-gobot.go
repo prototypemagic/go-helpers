@@ -22,8 +22,8 @@ const (
 	IRC_CHANNEL     = "#prototypemagic"
 	PREFACE         = "PRIVMSG " + IRC_CHANNEL + " :"
 
-	REPO_BASE_PATH  = "/home/steve/django_projects/"
-	// REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
+	// REPO_BASE_PATH  = "/home/steve/django_projects/"
+	REPO_BASE_PATH  = "/home/ubuntu/django_projects/"
 	REPO_INDEX_FILE = ".index"
 	GIT_PORT        = "6666"
 	WEBHOOK_PORT    = "7777"
@@ -144,7 +144,7 @@ func ircMsg(msg string) {
 	rawIrcMsg(PREFACE + msg)
 }
 
-func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
+func repoToNonMergeCommit(fullRepoPath, repoName string) GitCommit {
 	// defer func(where string) {
 	// 	if err := recover(); err != nil {
 	// 		msg := fmt.Sprintf("Recovered from error in %v: %v",
@@ -165,12 +165,12 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 	const GIT_COMMAND = "git log -1"
 	const GIT_COMMAND_IF_MERGE = "git log -2"
 
-	output := gitCommandToOutput(repoPath, GIT_COMMAND)
+	output := gitCommandToOutput(fullRepoPath, GIT_COMMAND)
 	if output == "" {
 		return GitCommit{}
 	}
 	if strings.Contains(output, "\nMerge:") {
-		commitStr := gitCommandToOutput(repoPath, GIT_COMMAND_IF_MERGE)
+		commitStr := gitCommandToOutput(fullRepoPath, GIT_COMMAND_IF_MERGE)
 		regexStr := `commit [0-9a-f]{40}`
 		getCommitLine := regexp.MustCompile(regexStr)
 		commitStrs := getCommitLine.FindAllString(commitStr, -1)
@@ -196,11 +196,15 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 	hash := strings.Split(commitLine, " ")[1]
 
 	// Parse out author info
-	tokens := strings.Split(authorLine[8:], " ")
-	authorEmailBraces := tokens[len(tokens)-1]
-	authorEmail := authorEmailBraces[1:len(authorEmailBraces)-1]
+	authorInfo := authorLine[len("Author: "):]
+	tokens := strings.Split(authorInfo, " ")
+	// `<email@domain.com>` (with angle brackets)
+	bracketEMAILbracket := tokens[len(tokens)-1]
+	n := len(bracketEMAILbracket)
+	// `email@domain.com` (without angle brackets)
+	authorEmail := bracketEMAILbracket[1:n-1]
+	// All tokens except for last (which is the email)
 	authorNames := tokens[:len(tokens)-1]
-	// authorFirst := authorNames[0]
 	author := strings.Join(authorNames, " ")
 
 	date := dateLine[len("Date:   "):]
@@ -213,42 +217,31 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 	Message: commitMsg,
 	Repo: repoName,
 	}
-	fmt.Printf("`git log -1` should equal...\n")
-	fmt.Printf(`
-commit %v
-Author: %v <%v>
-Date:   %v
-
-    %v` + "\n",
-		commit.Hash,
-		commit.Author, commit.Email,
-		commit.Date,
-		commit.Message)
 	return commit
 }
 
 
-func gitCommandToOutput(repoPath, command string) string {
+func gitCommandToOutput(fullRepoPath, command string) string {
     args := strings.Split(command, " ")
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Dir = repoPath  // Where cmd is run from
+	cmd.Dir = fullRepoPath  // Where cmd is run from
 	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("repo not found at '%v'", repoPath)
+		log.Printf("repo not found at '%v'", fullRepoPath)
 		// Search ${repoName}/bare then ${repoName}_site for desired repo
 
 		// Try bare/ if neither has been tried
 		// (Should work on server)
-		if !strings.HasSuffix(repoPath, "/bare") &&
-			!strings.HasSuffix(repoPath, "_site") {
-			return gitCommandToOutput(repoPath + "/bare", command)
+		if !strings.HasSuffix(fullRepoPath, "/bare") &&
+			!strings.HasSuffix(fullRepoPath, "_site") {
+			return gitCommandToOutput(fullRepoPath + "/bare", command)
 		}
 		// Try _site/ after trying bare/
 		// (Usually necessary locally)
-		if !strings.HasSuffix(repoPath, "_site") {
+		if !strings.HasSuffix(fullRepoPath, "_site") {
 			// Ignore last len("/bare") chars
-			repoPath = repoPath[:len(repoPath)-len("/bare")]
-			return gitCommandToOutput(repoPath + "_site", command)
+			fullRepoPath = fullRepoPath[:len(fullRepoPath)-len("/bare")]
+			return gitCommandToOutput(fullRepoPath + "_site", command)
 		}
 
 		// Now both /bare and _site have been tried. Giving up.
@@ -262,7 +255,7 @@ func gitCommandToOutput(repoPath, command string) string {
 }
 
 
-func gitRepoNameToPath(repoName string) string {
+func gitRepoNameToFullPath(repoName string) string {
 	// Alternatives to this I can think of: change global
 	// REPO_BASE_PATH from const into var (global variables == bad!)
 	repoBase := REPO_BASE_PATH[:]
@@ -284,8 +277,8 @@ func gitRepoDataParser(repoName string) GitCommit {
 			log.Print(msg)
 		}
 	}()
-	repoPath := gitRepoNameToPath(repoName)
-	commit := repoToNonMergeCommit(repoPath, repoName)
+	fullRepoPath := gitRepoNameToFullPath(repoName)
+	commit := repoToNonMergeCommit(fullRepoPath, repoName)
 	return commit
 }
 

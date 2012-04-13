@@ -160,8 +160,8 @@ func repoToNonMergeCommit(repoPath, repoName string) GitCommit {
 		}
 	}()
 
-	GIT_COMMAND := "git log -1"
-	GIT_COMMAND_IF_MERGE := "git log -2"
+	const GIT_COMMAND = "git log -1"
+	const GIT_COMMAND_IF_MERGE := "git log -2"
 
 	output := gitCommandToOutput(repoPath, GIT_COMMAND)
 	if output == "" {

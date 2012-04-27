@@ -25,7 +25,7 @@ const (
 	THIS_SERVER_NAME   = "ptm-core"
 	VERBOSE            = true
 	// BOT_NICK           = "ptm_gobot2"
-	// IRC_CHANNEL        = "#ptmtest"
+	// IRC_CHANNEL        = "#prototypemagic"
 	// THIS_SERVER_NAME   = "ptm-micro2"
 	// VERBOSE            = false
 	// BOT_NICK           = "ptm_gobot3"

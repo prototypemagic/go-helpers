@@ -22,19 +22,32 @@ const (
 
 	BOT_NICK           = "ptm_gobot"
 	IRC_CHANNEL        = "#prototypemagic"
-	REPO_BASE_PATH     = "/home/ubuntu/django_projects/"
-
+	THIS_SERVER_NAME   = "ptm-core"
+	VERBOSE            = true
 	// BOT_NICK           = "ptm_gobot2"
 	// IRC_CHANNEL        = "#ptmtest"
-	// REPO_BASE_PATH     = "/home/steve/django_projects/"
+	// THIS_SERVER_NAME   = "ptm-micro2"
+	// VERBOSE            = false
+	// BOT_NICK           = "ptm_gobot3"
+	// IRC_CHANNEL        = "#prototypemagic"
+	// THIS_SERVER_NAME   = "the Linode box"
+	// VERBOSE            = false
 
-	THIS_SERVER_NAME   = "core PTM micro instance"
-	PREFACE            = "PRIVMSG " + IRC_CHANNEL + " :"
+	REPO_BASE_PATH     = "/home/ubuntu/django_projects/"
+	OWNER_NICK         = "elimisteve1"
+
+	PRIVMSG_PRE        = "PRIVMSG "
+	PRIVMSG_POST       = " :"
+	IRC_CHAN_MSG_PRE   = PRIVMSG_PRE + IRC_CHANNEL + PRIVMSG_POST
 	REPO_INDEX_FILE    = ".index"
 	GIT_PORT           = "6666"
 	WEBHOOK_PORT       = "7777"
 	LOCAL_GITHUB_REPOS = "/home/ubuntu/github_repos/"
 )
+
+var NICKS_TO_NOTIFY = []string{"elimisteve", "elimisteve1", "elimisteve11",
+                               "elimisteve12"}
+
 
 type GitCommit struct {
 	Author string
@@ -147,9 +160,19 @@ func rawIrcMsg(str string) {
 }
 
 // ircMsg is a helper function that wraps rawIrcMsg, prefacing each
-// message with PREFACE (usually `PRIVMSG $IRC_CHANNEL `)
+// message with IRC_CHAN_MSG_PRE (usually `PRIVMSG $IRC_CHANNEL `)
 func ircMsg(msg string) {
-	rawIrcMsg(PREFACE + msg)
+	rawIrcMsg(IRC_CHAN_MSG_PRE + msg)
+}
+
+// privMsg is a helper function that wraps rawIrcMsg, prefacing each
+// message with IRC_CHAN_MSG_PRE (usually `PRIVMSG $IRC_CHANNEL `)
+func privMsg(nickOrChannel, msg string) {
+	rawIrcMsg(PRIVMSG_PRE + nickOrChannel + PRIVMSG_POST + msg)
+}
+
+func privMsgOwner(msg string) {
+	privMsg(OWNER_NICK, msg)
 }
 
 func repoToNonMergeCommit(fullRepoPath, repoName string) GitCommit {
@@ -407,8 +430,10 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 	// Parsing GitHub-specific format
 	data := values["payload"][0]
 	commit := webhookDataToGitCommit(data)
-	irc <- fmt.Sprintf(`%s just pushed to %s/%s on GitHub: "%s"`,
-		commit.Author, commit.RepoOwner, commit.Repo, commit.Message)
+	if VERBOSE {
+		irc <- fmt.Sprintf(`%s just pushed to %s on GitHub: "%s"`,
+			commit.Author, commit.Repo, commit.Message)
+	}
 	updateLocalGitHubRepo(commit.Repo)
 	return
 }
@@ -475,11 +500,17 @@ func updateLocalGitHubRepo(repoName string) {
 %v
 ========
 `, output)
+	// ircMsg has type `func(string)`
+	f := ircMsg
+	if !VERBOSE {
+		// So does privMsgOwner
+		f = privMsgOwner
+	}
 	if strings.Contains(output, "\nFast-forward") {
-		ircMsg("Successfully updated " + fullRepoPath +
+		f("Successfully updated " + fullRepoPath +
 			" repo on " + THIS_SERVER_NAME)
 	} else {
-		ircMsg("Failed to pull from GitHub to " + fullRepoPath +
+		f("Failed to pull from GitHub to " + fullRepoPath +
 			" repo on " + THIS_SERVER_NAME)
 	}
 }

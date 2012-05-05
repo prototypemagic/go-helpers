@@ -134,7 +134,7 @@ func main() {
 			fmt.Printf("Nick: '%v'\n", nick)
 		}
 		// TODO: Make this much more precise
-		if !strings.Contains(data, "MODE") {
+		if !strings.Contains(data, "MODE") && !strings.Contains(data, "JOIN") {
 			// msg == everything after second :
 			msg = strings.SplitN(data, ":", 3)[2]
 			fmt.Printf("Message: '%v'\n", msg)

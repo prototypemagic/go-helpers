@@ -139,7 +139,7 @@ func main() {
 		}
 		if strings.Contains(data, "MODE " + IRC_CHANNEL + " +o " + BOT_NICK) {
 			irc <- nick + ": thanks :-)"
-			if revenge != []string{} {
+			if len(revenge) > 0 {
 				for _, user := range revenge {
 					rawIrcMsg("KICK " + IRC_CHANNEL + " " + user + " :" + REVENGE_MSG)
 				}

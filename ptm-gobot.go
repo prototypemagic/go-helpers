@@ -464,22 +464,24 @@ func webhookDataToGitCommit(data string) GitCommit {
 		return commit
 	}
 	// Parse these pieces:
-	// // commit.Author    = payload[pusher][name]
-	// // commit.Email     = payload[pusher][email]
-	// commit.Author    = payload[head_commit][author][username]
-	// commit.Email     = payload[head_commit][author][email]
+	// commit.Author    = payload[pusher][name]
+	// commit.Email     = payload[pusher][email]
+	// // commit.Author    = payload[head_commit][author][username]
+	// // commit.Email     = payload[head_commit][author][email]
 	// commit.Message   = payload[head_commit][message]
 	// commit.Repo      = payload[repository][name]
 	// commit.RepoOwner = payload[repository][owner][name]
 	payload := m.(map[string]interface{})
 	for k, v := range payload {
+		if k == "pusher" {
+			pusher := v.(map[string]interface{})
+			commit.Author = fmt.Sprintf("%v", pusher["name"])
+			commit.Email = fmt.Sprintf("%v", pusher["email"])
+		}
 		if k == "head_commit" {
 			head_commit := v.(map[string]interface{})
 			msg := fmt.Sprintf("%v", head_commit["message"])
 			commit.Message = strings.Replace(msg, "\n", "    ", -1)
-			author := head_commit["author"].(map[string]interface{})
-			commit.Author = fmt.Sprintf("%v", author["username"])
-			commit.Email = fmt.Sprintf("%v", author["email"])
 		}
 		if k == "repository" {
 			repository := v.(map[string]interface{})

@@ -145,12 +145,10 @@ func main() {
 		// Thank user when given OP... then seek revenge
 		if strings.Contains(data, "MODE " + IRC_CHANNEL + " +o " + BOT_NICK) {
 			irc <- nick + ": thanks :-)"
-			if len(revenge) > 0 {
-				for _, user := range revenge {
-					rawIrcMsg("KICK " + IRC_CHANNEL + " " + user + " :" + REVENGE_MSG)
-				}
-				revenge = []string{}
+			for _, user := range revenge {
+				rawIrcMsg("KICK " + IRC_CHANNEL + " " + user + " :" + REVENGE_MSG)
 			}
+			revenge = []string{}
 		}
 		// Seek revenge on those who remove bot's OP
 		if strings.Contains(data, "MODE " + IRC_CHANNEL + " -o " + BOT_NICK) {

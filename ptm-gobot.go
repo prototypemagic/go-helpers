@@ -127,6 +127,7 @@ func main() {
 		// Avoids ~global var risk by resetting these to "" each loop
 		var msg, nick string = "", ""
 
+		// Parse nick when safe to do so
 		if proto.ContainsAnyStrings(data, "PRIVMSG", "MODE", "JOIN", "KICK") {
 			// structure of `data` == :nick!host PRIVMSG #channel :msg
 
@@ -135,11 +136,13 @@ func main() {
 			fmt.Printf("Nick: '%v'\n", nick)
 		}
 		// TODO: Make this much more precise
+		// Parse msg when safe to do so
 		if !proto.ContainsAnyStrings(data, "MODE", "JOIN") {
 			// msg == everything after second :
 			msg = strings.SplitN(data, ":", 3)[2]
 			fmt.Printf("Message: '%v'\n", msg)
 		}
+		// Thank user when given OP... then seek revenge
 		if strings.Contains(data, "MODE " + IRC_CHANNEL + " +o " + BOT_NICK) {
 			irc <- nick + ": thanks :-)"
 			if len(revenge) > 0 {
@@ -149,11 +152,17 @@ func main() {
 				revenge = []string{}
 			}
 		}
+		// Seek revenge on those who remove bot's OP
 		if strings.Contains(data, "MODE " + IRC_CHANNEL + " -o " + BOT_NICK) {
 			irc <- ":-("
 			revenge = append(revenge, nick)
 		}
-		
+		//
+		// Re-join if kicked
+		//
+		if strings.Contains(data, "KICK") && strings.Contains(data, BOT_NICK) {
+			rawIrcMsg("JOIN " + IRC_CHANNEL)
+		}
 		//
 		// ADD YOUR CODE (or function calls) HERE
 		//

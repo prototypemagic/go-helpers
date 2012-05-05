@@ -126,7 +126,7 @@ func main() {
 		// Avoids ~global var risk by resetting these to "" each loop
 		var msg, nick string = "", ""
 
-		if strings.Contains(data, "PRIVMSG") {
+		if strings.Contains(data, "PRIVMSG") || strings.Contains(data, "MODE") {
 			// structure of `data` == :nick!host PRIVMSG #channel :msg
 
 			// nick == everything after first char, before first !

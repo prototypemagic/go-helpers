@@ -43,6 +43,7 @@ const (
 	GIT_PORT           = "6666"
 	WEBHOOK_PORT       = "7777"
 	LOCAL_GITHUB_REPOS = "/home/ubuntu/github_repos/"
+	REVENGE_MSG        = "I never forget. I never forgive."
 )
 
 var NICKS_TO_NOTIFY = []string{"elimisteve", "elimisteve1", "elimisteve11",
@@ -70,6 +71,8 @@ var conn net.Conn
 
 // Anything passed to this channel is echoed into IRC_CHANNEL
 var irc = make(chan string)
+
+var revenge = []string{}
 
 func main() {
 	// If the constants are valid, this program cannot crash. Period.
@@ -134,6 +137,20 @@ func main() {
 			msg = strings.SplitN(data, ":", 3)[2]
 			fmt.Printf("Message: '%v'\n", msg)
 		}
+		if strings.Contains(data, "MODE " + IRC_CHANNEL + " +o " + BOT_NICK) {
+			irc <- nick + ": thanks :-)"
+			if revenge != []string{} {
+				for _, user := range revenge {
+					rawIrcMsg("KICK " + IRC_CHANNEL + " " + user + " :" + REVENGE_MSG)
+				}
+				revenge = []string{}
+			}
+		}
+		if strings.Contains(data, "MODE " + IRC_CHANNEL + " -o " + BOT_NICK) {
+			irc <- ":-("
+			revenge = append(revenge, nick)
+		}
+		
 		//
 		// ADD YOUR CODE (or function calls) HERE
 		//

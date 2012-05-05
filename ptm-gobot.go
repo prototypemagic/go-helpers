@@ -135,8 +135,8 @@ func main() {
 			nick = strings.SplitN(data[1:], "!", 2)[0]
 			fmt.Printf("Nick: '%v'\n", nick)
 		}
-		// TODO: Make this much more precise
 		// Parse msg when safe to do so
+		// TODO: Make this much more precise
 		if proto.ContainsAnyStrings(data, "PRIVMSG", "KICK") {
 			// msg == everything after second :
 			msg = strings.SplitN(data, ":", 3)[2]
@@ -162,6 +162,7 @@ func main() {
 		//
 		if strings.Contains(data, "KICK") && strings.Contains(data, BOT_NICK) {
 			rawIrcMsg("JOIN " + IRC_CHANNEL)
+			revenge = append(revenge, nick)
 		}
 		//
 		// ADD YOUR CODE (or function calls) HERE

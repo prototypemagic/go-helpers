@@ -472,6 +472,7 @@ func webhookDataToGitCommit(data string) GitCommit {
 	// commit.Repo      = payload[repository][name]
 	// commit.RepoOwner = payload[repository][owner][name]
 	payload := m.(map[string]interface{})
+	if VERBOSE { fmt.Printf("payload == %+v\n", payload) }
 	for k, v := range payload {
 		if k == "pusher" {
 			pusher := v.(map[string]interface{})

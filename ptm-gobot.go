@@ -137,7 +137,7 @@ func main() {
 		}
 		// TODO: Make this much more precise
 		// Parse msg when safe to do so
-		if !proto.ContainsAnyStrings(data, "MODE", "JOIN") {
+		if proto.ContainsAnyStrings(data, "PRIVMSG", "KICK") {
 			// msg == everything after second :
 			msg = strings.SplitN(data, ":", 3)[2]
 			fmt.Printf("Message: '%v'\n", msg)

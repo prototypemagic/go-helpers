@@ -132,13 +132,12 @@ func main() {
 			// nick == everything after first char, before first !
 			nick = strings.SplitN(data[1:], "!", 2)[0]
 			fmt.Printf("Nick: '%v'\n", nick)
-
-			// TODO: Make this much more precise
-			if !strings.Contains(data, "MODE") {
-				// msg == everything after second :
-				msg = strings.SplitN(data, ":", 3)[2]
-				fmt.Printf("Message: '%v'\n", msg)
-			}
+		}
+		// TODO: Make this much more precise
+		if !strings.Contains(data, "MODE") {
+			// msg == everything after second :
+			msg = strings.SplitN(data, ":", 3)[2]
+			fmt.Printf("Message: '%v'\n", msg)
 		}
 		if strings.Contains(data, "MODE " + IRC_CHANNEL + " +o " + BOT_NICK) {
 			irc <- nick + ": thanks :-)"

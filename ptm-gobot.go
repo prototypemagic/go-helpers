@@ -120,6 +120,12 @@ func main() {
 			rawIrcMsg("PONG " + data)
 		}
 		//
+		// Re-join if kicked
+		//
+		if strings.Contains(data, "KICK") && strings.Contains(data, BOT_NICK) {
+			rawIrcMsg("JOIN " + IRC_CHANNEL)
+		}
+		//
 		// Parse nick, msg
 		//
 

@@ -1,12 +1,11 @@
 // Author:  Steve Phillips / elimisteve
 // Started: 2012.01.27
-// Updated: 2012.01.27
+// Updated: 2012.05.05
 
 package proto
 
 import (
-	"fmt"
-	"proto"
+	"strings"
 )
 
 // Range emulates Python's range() function. Currently only works with
@@ -32,6 +31,26 @@ func Range(values ...int) []int {
 		intSlice = append(intSlice, i)
 	}
 	return intSlice
+}
+
+
+func ContainsAnyStrings(body string, substrings ...string) bool {
+	for _, str := range substrings {
+		if strings.Contains(body, str) {
+			return true
+		}
+	}
+	return false
+}
+
+
+func ContainsAllStrings(body string, substrings ...string) bool {
+	for _, str := range substrings {
+		if !strings.Contains(body, str) {
+			return false
+		}
+	}
+	return true
 }
 
 // Unpacker simulates Python's list/tuple unpacking by returning the

@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go-helpers/proto"
 	"io/ioutil"
 	"log"
 	"net"
@@ -120,19 +121,13 @@ func main() {
 			rawIrcMsg("PONG " + data)
 		}
 		//
-		// Re-join if kicked
-		//
-		if strings.Contains(data, "KICK") && strings.Contains(data, BOT_NICK) {
-			rawIrcMsg("JOIN " + IRC_CHANNEL)
-		}
-		//
 		// Parse nick, msg
 		//
 
 		// Avoids ~global var risk by resetting these to "" each loop
 		var msg, nick string = "", ""
 
-		if strings.Contains(data, "PRIVMSG") || strings.Contains(data, "MODE") {
+		if proto.ContainsAnyStrings(data, "PRIVMSG", "MODE", "JOIN", "KICK") {
 			// structure of `data` == :nick!host PRIVMSG #channel :msg
 
 			// nick == everything after first char, before first !
@@ -140,7 +135,7 @@ func main() {
 			fmt.Printf("Nick: '%v'\n", nick)
 		}
 		// TODO: Make this much more precise
-		if !strings.Contains(data, "MODE") && !strings.Contains(data, "JOIN") {
+		if !proto.ContainsAnyStrings(data, "MODE", "JOIN") {
 			// msg == everything after second :
 			msg = strings.SplitN(data, ":", 3)[2]
 			fmt.Printf("Message: '%v'\n", msg)

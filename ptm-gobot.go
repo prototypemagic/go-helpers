@@ -162,6 +162,31 @@ func main() {
 			rawIrcMsg("JOIN " + IRC_CHANNEL)
 			revenge = append(revenge, nick)
 		}
+		if THIS_SERVER_NAME == "ptm-core" {
+			if strings.HasPrefix(msg, "!ticket ") || strings.HasPrefix(msg, "!new ") {
+				ticket := strings.SplitN(msg, " ", 3)
+				if len(ticket) == 3 {
+					project, subject := ticket[1], ticket[2]
+					// <Ghetto>
+					project = strings.Replace(project, `"`, `'`, -1)
+					subject = strings.Replace(subject, `"`, `'`, -1)
+					// </Ghetto>
+					resp := proto.CreateTicket(project, subject)
+					fmt.Printf("%+v\n", resp)
+
+					// Success?
+					if resp.StatusCode == 404 {
+						irc <- fmt.Sprintf("Project '%v' not found", project)
+					} else if resp.StatusCode == 201 {
+						irc <- "Ticket created: " + resp.Header["Location"][0]
+					} else {
+						irc <- "Something bad happened..."
+					}
+				} else {
+					irc <- "Usage: '!new project_name New ticket subject'"
+				}
+			}
+		}
 		//
 		// ADD YOUR CODE (or function calls) HERE
 		//

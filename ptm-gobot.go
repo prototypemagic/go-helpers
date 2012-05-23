@@ -21,6 +21,11 @@ import (
 const (
 	IRC_SERVER         = "irc.freenode.net:6667"
 
+	// BOT_NICK           = "ptm_gobottest"
+	// IRC_CHANNEL        = "#ptmtest"
+	// THIS_SERVER_NAME   = "ptm-core"
+	// VERBOSE            = true
+
 	BOT_NICK           = "ptm_gobot"
 	IRC_CHANNEL        = "#prototypemagic"
 	THIS_SERVER_NAME   = "ptm-core"

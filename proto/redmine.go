@@ -16,9 +16,22 @@ const (
 	BOT_REDMINE_KEY  = "ce734fe0d3fb6a47015d96940949d42d3ed0e4be"
 )
 
-func CreateTicket(project, subject string) *http.Response {
+// Maps ticketType to tracker_id
+var trackerID = map[string]string {
+	"bug": "1",
+	"feature": "2",
+}
+
+func CreateTicket(project, ticketType, subject, description string) *http.Response {
 	// TODO: Marshal a struct instead of using strings
-	json := fmt.Sprintf(`{"project_id": "%v", "issue": {"tracker_id": 2, "subject": "%v", "description": ""}}`, project, subject)
+	// <Ghetto>
+	project = strings.Replace(project, `"`, `'`, -1)
+	ticketType = strings.Replace(ticketType, `"`, `'`, -1)
+	subject = strings.Replace(subject, `"`, `'`, -1)
+	description = strings.Replace(description, `"`, `'`, -1)
+	// </Ghetto>
+
+	json := fmt.Sprintf(`{"project_id": "%v", "issue": {"tracker_id": %v, "subject": "%v", "description": "%v"}}`, project, trackerID[ticketType], subject, description)
     reader := strings.NewReader(json)
 
 	client := &http.Client{}

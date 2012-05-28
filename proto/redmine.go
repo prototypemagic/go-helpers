@@ -24,12 +24,12 @@ var trackerID = map[string]string {
 
 func CreateTicket(project, ticketType, subject, description string) *http.Response {
 	// TODO: Marshal a struct instead of using strings
-	// <Ghetto>
+	// <GhettoSanitize>
 	project = strings.Replace(project, `"`, `'`, -1)
 	ticketType = strings.Replace(ticketType, `"`, `'`, -1)
 	subject = strings.Replace(subject, `"`, `'`, -1)
 	description = strings.Replace(description, `"`, `'`, -1)
-	// </Ghetto>
+	// </GhettoSanitize>
 
 	json := fmt.Sprintf(`{"project_id": "%v", "issue": {"tracker_id": %v, "subject": "%v", "description": "%v"}}`, project, trackerID[ticketType], subject, description)
     reader := strings.NewReader(json)

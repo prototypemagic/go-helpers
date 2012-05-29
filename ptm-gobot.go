@@ -184,7 +184,7 @@ func main() {
 					// If text after project_name contains a ';', the
 					// user added a ticket description. Parse it out.
 					if strings.Contains(subject, ";") {
-						subDesc := strings.SplitN(subject, ";", 1)
+						subDesc := strings.SplitN(subject, ";", 2)
 						subject = strings.Trim(subDesc[0], ` `)
 						description = strings.Trim(subDesc[1], ` `)
 					}

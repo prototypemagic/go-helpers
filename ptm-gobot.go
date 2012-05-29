@@ -179,16 +179,22 @@ func main() {
 					if ticketType != "bug" {
 						ticketType = "feature"
 					}
-					project, subject, description := ticket[1], ticket[2], ""
+					project, subject := ticket[1], ticket[2]
+					description, assignee := "", ""
 					// If text after project_name contains a ';', the
 					// user added a ticket description. Parse it out.
 					if strings.Contains(subject, ";") {
-						subDesc := strings.Split(subject, ";")
+						subDesc := strings.SplitN(subject, ";", 1)
 						subject = strings.Trim(subDesc[0], ` `)
 						description = strings.Trim(subDesc[1], ` `)
 					}
+					if strings.Contains(description, ";") {
+						descAssignee := strings.Split(description, ";")
+						description = strings.Trim(descAssignee[0], ` `)
+						assignee = strings.Trim(descAssignee[1], ` `)
+					}
 					resp := proto.CreateTicket(project, ticketType,
-						subject, description)
+						subject, description, assignee)
 					fmt.Printf("%+v\n", resp)
 
 					// Success?

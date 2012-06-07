@@ -53,5 +53,14 @@ func ContainsAllStrings(body string, substrings ...string) bool {
 	return true
 }
 
+func SliceContains(slice []string, s string) {
+	for _, str := range slice {
+		if str == s {
+			return true
+		}
+	}
+	return false
+}
+
 // Unpacker simulates Python's list/tuple unpacking by returning the
 // correct number of items -- one per element in the slice

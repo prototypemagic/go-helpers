@@ -53,7 +53,7 @@ func ContainsAllStrings(body string, substrings ...string) bool {
 	return true
 }
 
-func SliceContains(slice []string, s string) {
+func SliceContains(slice []string, s string) bool {
 	for _, str := range slice {
 		if str == s {
 			return true

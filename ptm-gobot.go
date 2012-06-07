@@ -167,16 +167,34 @@ func main() {
 			rawIrcMsg("JOIN " + IRC_CHANNEL)
 			revenge = append(revenge, nick)
 		}
+		// We don't need more than one bot posting tickets...
 		if THIS_SERVER_NAME == "ptm-core" {
-			if strings.HasPrefix(msg, "!ticket ") || strings.HasPrefix(msg, "!new ") {
+			if strings.HasPrefix(msg, "!ticket ") ||
+				strings.HasPrefix(msg, "!new ") ||
+				strings.HasPrefix(msg, "!bug ") {
 				ticket := strings.SplitN(msg, " ", 3)
 				if len(ticket) == 3 {
+					// Ignore leading '!' and trailing ' ' of command
+					ticketType := strings.Trim(ticket[0][1:], ` `)
+					if ticketType != "bug" {
+						ticketType = "feature"
+					}
 					project, subject := ticket[1], ticket[2]
-					// <Ghetto>
-					project = strings.Replace(project, `"`, `'`, -1)
-					subject = strings.Replace(subject, `"`, `'`, -1)
-					// </Ghetto>
-					resp := proto.CreateTicket(project, subject)
+					description, assignee := "", ""
+					// If text after project_name contains a ';', the
+					// user added a ticket description. Parse it out.
+					if strings.Contains(subject, ";") {
+						subDesc := strings.SplitN(subject, ";", 2)
+						subject = strings.Trim(subDesc[0], ` `)
+						description = strings.Trim(subDesc[1], ` `)
+					}
+					if strings.Contains(description, ";") {
+						descAssignee := strings.Split(description, ";")
+						description = strings.Trim(descAssignee[0], ` `)
+						assignee = strings.Trim(descAssignee[1], ` `)
+					}
+					resp := proto.CreateTicket(project, ticketType,
+						subject, description, assignee)
 					fmt.Printf("%+v\n", resp)
 
 					// Success?
@@ -188,7 +206,8 @@ func main() {
 						irc <- "Something bad happened..."
 					}
 				} else {
-					irc <- "Usage: '!new project_name New ticket subject'"
+					irc <- "Usage: '![new|bug] project_name New Ticket Subject; " +
+						"New ticket description'"
 				}
 			}
 		}

@@ -592,10 +592,10 @@ func updateLocalGitHubRepo(repoName string) {
 %v
 ========
 `, output)
-	// ircMsg has type `func(string)`
+	// ircMsg has type `func(string)`...
 	f := ircMsg
 	if !VERBOSE {
-		// So does privMsgOwner
+		// ...and so does privMsgOwner
 		f = privMsgOwner
 	}
 	if strings.Contains(output, "\nUnpacking objects") {

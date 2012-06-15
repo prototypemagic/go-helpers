@@ -602,7 +602,10 @@ func updateLocalGitHubRepo(repoName string) {
 		f("Successfully ~updated (fetched) " + fullRepoPath +
 			" repo on " + THIS_SERVER_NAME)
 	} else {
-		f("Failed to pull from GitHub to " + fullRepoPath +
-			" repo on " + THIS_SERVER_NAME)
+		// Pass for now. TODO: Make this more robust; get rid of all
+		// misleading errors.
+
+		// f("Failed to pull from GitHub to " + fullRepoPath +
+		// 	" repo on " + THIS_SERVER_NAME)
 	}
 }

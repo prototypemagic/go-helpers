@@ -447,6 +447,8 @@ func listRepos() string {
 		// TODO: Assumes sub-directories do not include spaces
 		// cmd := exec.Command("ls -l | grep ^d | awk '{print $9}'")
 
+		// WTF? FIXME: Use Go's own directory listing
+		// capabilities... _Duh_...
 		cmd := exec.Command("ls")
 		cmd.Dir = REPO_BASE_PATH
 		// If no error, `result` used after this block
@@ -475,6 +477,15 @@ func listRepos() string {
 	// trailing newline in REPO_INDEX_FILE)
 	if repoNames[len(repoNames)-1] == "" {
 		repoNames = repoNames[:len(repoNames)-1]
+	}
+	// Remove potential repo names that include a "." (those are
+	// files, not directories)
+	for ndx, name := range repoNames {
+		if !strings.HasSuffix(name, ".git") &&
+			strings.Contains(name, ".") {
+			// Remove this (non-)"repo" from repoNames
+			repoNames = append(repoNames[:ndx], repoNames[ndx+1:]...)
+		}
 	}
 	return strings.Join(repoNames, ", ")
 }
@@ -511,6 +522,7 @@ func webhookHandler(w http.ResponseWriter, req *http.Request) {
 		irc <- fmt.Sprintf(`%s just pushed to %s on GitHub: "%s"`,
 			commit.Author, commit.Repo, commit.Message)
 	}
+	fmt.Printf("Updating local GitHub repo '%v'\n", commit.Repo)
 	updateLocalGitHubRepo(commit.Repo)
 	return
 }

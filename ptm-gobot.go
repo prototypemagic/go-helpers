@@ -585,9 +585,9 @@ func webhookDataToGitCommit(data string) GitCommit {
 
 func updateLocalGitHubRepo(repoName string) {
 	fullRepoPath := LOCAL_GITHUB_REPOS + repoName
-	const command = "git pull origin master"
+	const command = "git fetch"
 	output := gitCommandToOutput(fullRepoPath, command)
-	fmt.Printf(`Output from pull:
+	fmt.Printf(`Output from fetch:
 ========
 %v
 ========
@@ -598,8 +598,8 @@ func updateLocalGitHubRepo(repoName string) {
 		// So does privMsgOwner
 		f = privMsgOwner
 	}
-	if strings.Contains(output, "\nFast-forward") {
-		f("Successfully updated " + fullRepoPath +
+	if strings.Contains(output, "\nUnpacking objects") {
+		f("Successfully ~updated (fetched) " + fullRepoPath +
 			" repo on " + THIS_SERVER_NAME)
 	} else {
 		f("Failed to pull from GitHub to " + fullRepoPath +

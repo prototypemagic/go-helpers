@@ -356,7 +356,7 @@ while True:
 
    if ':!help' in data:
        irc_msg("Options: !time <city>, !msg <recipient> <message>, " +
-               "!privmsg <recipient> <message>")
+               "!privmsg <recipient> <message>, !whoami, !morse <message>")
 
    # if username == 'paul_be' or username == 'm0tan':
    #     irc_msg('Hey ' + username + ', am I annoying yet?')

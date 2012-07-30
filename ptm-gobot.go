@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
-	// "regexp"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -39,6 +39,7 @@ const (
 	// THIS_SERVER_NAME   = "the Linode box"
 	// VERBOSE            = false
 
+	REDMINE_URL        = "http://prototypemagic.com:3000"
 	REPO_BASE_PATH     = "/home/ubuntu/django_projects/"
 	OWNER_NICK         = "elimisteve1"
 
@@ -49,12 +50,11 @@ const (
 	GIT_PORT           = "6666"
 	WEBHOOK_PORT       = "7777"
 	LOCAL_GITHUB_REPOS = "/home/ubuntu/github_repos/"
-	REVENGE_MSG        = "I never forget. I never forgive."
+	REVENGE_MSG        = "I never forgive. I never forget."
 )
 
 var NICKS_TO_NOTIFY = []string{"elimisteve", "elimisteve1", "elimisteve11",
                                "elimisteve12"}
-
 
 type GitCommit struct {
 	Author string
@@ -422,11 +422,17 @@ func gitListener() {
 		log.Printf("Repo name received: '%v'", repoName)
 
 		gitCommit := gitRepoDataParser(repoName)
+		// TODO: Complain to go-nuts mailing list
 		empty := GitCommit{}
 		if gitCommit != empty {
 			msg := fmt.Sprintf(`%v pushed to %v: "%v"`,
 				gitCommit.Author, repoName, gitCommit.Message)
 			ircMsg(msg)
+		}
+		// Link us to all tickets referenced in commit message
+		getIDs := regexp.MustCompile(`#[0-9]+`)
+		for _, msg := range getIDs.FindAllStringSubmatch(gitCommit.Message, -1) {
+			ircMsg(REDMINE_URL + "/issues/" + msg[0][1:])
 		}
 		conn.Close()
 	}

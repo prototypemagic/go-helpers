@@ -1,6 +1,5 @@
 # ProtoType Magic's Go helper functions
 
-
 ## Errors
 
 1. Disconnection

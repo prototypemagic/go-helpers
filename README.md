@@ -8,6 +8,8 @@
     2012/04/30 18:08:27 conn.Read: EOF
     exit status 1
 
+Solution: auto-reconnect
+
 
 2. False Type Assertion
 

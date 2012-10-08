@@ -1,4 +1,4 @@
-# ProtoType Magic's Go Helper Functions
+# ProtoType Magic's Go Helper Functions(TM)
 
 ## Errors
 
